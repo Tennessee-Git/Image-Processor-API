@@ -5,6 +5,7 @@ const PORT = process.env.PORT || 8080;
 const path = require("path");
 const { logger, logEvents } = require("./middleware/logger");
 const errorHandler = require("./middleware/errorHandler");
+const cookieParser = require('cookie-parser')
 const cors = require("cors");
 const corsOptions = require("./config/corsOptions");
 const connectToDb = require("./config/dbConnection");
@@ -16,9 +17,12 @@ connectToDb();
 app.use(logger);
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser())
 
 app.use("/", express.static(path.join(__dirname, "public")));
 app.use("/", require("./routes/root"));
+app.use("/auth", require("./routes/authRoutes"));
+app.use("/images", require("./routes/imageRoutes"));
 
 app.all("*", (req, res) => {
   res.status(404);
