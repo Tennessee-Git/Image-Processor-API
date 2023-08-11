@@ -26,7 +26,7 @@ const createUser = async (req, res) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const user = await User.create({ username, password: hashedPassword });
+  const user = await User.create({ username, password: hashedPassword }); //TODO: add default profile picture
   if (user)
     return res.status(201).json({ message: `User ${username} created.` });
   else return res.status(400).json({ message: "Invalid user data received." });
@@ -46,15 +46,31 @@ const deleteUser = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-    const {id, username, password} = req.body;
-    if(!username || !id)
-    return res.status(400).json({message:'All fields except password are required.'})
+  const { id, username, password } = req.body;
+  if (!username || !id)
+    return res
+      .status(400)
+      .json({ message: "All fields except password are required." });
 
-const user = await User.findOne(id).exec()
-if(!user)
-return res.status(400).json({message:'User not found.'})
+  const user = await User.findOne(id).exec();
+  if (!user) return res.status(400).json({ message: "User not found." });
 
+  const isDuplicate = await User.findOne({ username })
+    .collation({ locale: "en", strength: 2 })
+    .lean()
+    .exec();
 
+  if (isDuplicate && isDuplicate?._id.toString() !== id)
+    return res.status(409).json({ message: "Duplicate username" });
+
+  user.username = user.username !== username ? username : user.username;
+  //profile picture change
+
+  if (password) user.password = await bcrypt.hash(password, 10);
+
+  const updatedUser = await user.save();
+
+  res.json({ message: `${updatedUser.username} updated.` });
 };
 
 module.exports = {
